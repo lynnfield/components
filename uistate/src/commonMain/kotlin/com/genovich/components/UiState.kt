@@ -26,6 +26,14 @@ value class UiState<Input, Output>(val value: Pair<Input, (Output) -> Unit>) {
     operator fun component2() = action
 }
 
+data class Show<Input, Output>(
+    val mutableStateFlow: MutableStateFlow<UiState<Input, Output>?>
+) : suspend (Input) -> Output {
+    override suspend fun invoke(input: Input): Output {
+        return mutableStateFlow.showAndGetResult(input)
+    }
+}
+
 suspend fun <T, U> MutableStateFlow<UiState<T, U>?>.showAndGetResult(input: T): U {
     return suspendCancellableCoroutine { continuation ->
         continuation.invokeOnCancellation { value = null }
