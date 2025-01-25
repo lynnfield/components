@@ -47,6 +47,23 @@ suspend fun <Input, Output> parallel(
     }
 }
 
+suspend fun <Input, Output> parallel(
+    input: Input,
+    fun1: suspend (Input) -> Output,
+    fun2: suspend (Input) -> Output,
+    vararg others: suspend (Input) -> Output
+): Output = coroutineScope {
+    select {
+        async { fun1(input) }.onAwait { it }
+        async { fun2(input) }.onAwait { it }
+        for (funN in others) {
+            async { funN(input) }.onAwait { it }
+        }
+    }.also {
+        coroutineContext.cancelChildren()
+    }
+}
+
 /**
  * Build a function that runs [fun1] and [fun2] in parallel.
  * Feeds [Input] to [fun1] and [fun2].

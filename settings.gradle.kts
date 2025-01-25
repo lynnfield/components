@@ -16,8 +16,9 @@ dependencyResolutionManagement {
     }
 }
 
-include(":uistate")
-include(":parallel")
-include(":while-active")
-include(":update-loop")
+include(":function")
 include(":one-of")
+include(":parallel")
+include(":uistate")
+include(":update-loop")
+include(":while-active")
