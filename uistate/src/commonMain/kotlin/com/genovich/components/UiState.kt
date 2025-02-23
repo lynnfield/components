@@ -37,11 +37,12 @@ data class Show<Input, Output>(
 suspend fun <T, U> MutableStateFlow<UiState<T, U>?>.showAndGetResult(input: T): U {
     return suspendCancellableCoroutine { continuation ->
         continuation.invokeOnCancellation { value = null }
-        value = UiState(input, continuation.asCallback())
+        value = UiState(input, continuation.asCallback(this))
     }
 }
 
-fun <T> CancellableContinuation<T>.asCallback(): (T) -> Unit = { value: T ->
+fun <T, U : Any> CancellableContinuation<T>.asCallback(flow: MutableStateFlow<U?>): (T) -> Unit = { value: T ->
+    flow.value = null
     resume(value) { cause, resumedValue, coroutineContext ->
         coroutineContext[Logger]?.log(
             "cannot resume with $resumedValue, because continuation is cancelled",
