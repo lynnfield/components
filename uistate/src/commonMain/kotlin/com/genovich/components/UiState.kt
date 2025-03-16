@@ -2,6 +2,7 @@ package com.genovich.components
 
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.CoroutineContext
 import kotlin.jvm.JvmInline
@@ -32,6 +33,11 @@ data class Show<Input, Output>(
     override suspend fun invoke(input: Input): Output {
         return mutableStateFlow.showAndGetResult(input)
     }
+}
+
+fun <Input, Output> Show(): Pair<suspend (Input) -> Output, StateFlow<UiState<Input, Output>?>> {
+    val mutableStateFlow = MutableStateFlow<UiState<Input, Output>?>(null)
+    return Show(mutableStateFlow)::invoke to mutableStateFlow
 }
 
 suspend fun <T, U> MutableStateFlow<UiState<T, U>?>.showAndGetResult(input: T): U {
