@@ -6,9 +6,6 @@ plugins {
     id("maven-publish")
 }
 
-group = "com.genovich.components"
-version = "1.0"
-
 kotlin {
     js(IR) {
         browser()
@@ -46,11 +43,5 @@ android {
     }
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
-    }
-}
-
-publishing {
-    repositories {
-        mavenLocal()
     }
 }
