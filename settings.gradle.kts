@@ -16,9 +16,10 @@ dependencyResolutionManagement {
     }
 }
 
-include(":function")
-include(":one-of")
-include(":parallel")
-include(":uistate")
-include(":update-loop")
-include(":while-active")
+include(
+    ":one-of",
+    ":parallel",
+    ":uistate",
+    ":update-loop",
+    ":while-active",
+)
