@@ -29,15 +29,20 @@ value class UiState<Input, Output>(val value: Pair<Input, (Output) -> Unit>) {
 
 data class Show<Input, Output>(
     val mutableStateFlow: MutableStateFlow<UiState<Input, Output>?>
-) : suspend (Input) -> Output {
+) : Action<Input, Output> {
     override suspend fun invoke(input: Input): Output {
         return mutableStateFlow.showAndGetResult(input)
     }
 }
 
-fun <Input, Output> Show(): Pair<suspend (Input) -> Output, StateFlow<UiState<Input, Output>?>> {
+
+typealias UiStateFlow<Input, Output> = StateFlow<UiState<Input, Output>?>
+
+typealias UiStateBinding<Input, Output> = Pair<Action<Input, Output>, UiStateFlow<Input, Output>>
+
+fun <Input, Output> Show(): UiStateBinding<Input, Output> {
     val mutableStateFlow = MutableStateFlow<UiState<Input, Output>?>(null)
-    return Show(mutableStateFlow)::invoke to mutableStateFlow
+    return Show(mutableStateFlow) to mutableStateFlow
 }
 
 suspend fun <T, U> MutableStateFlow<UiState<T, U>?>.showAndGetResult(input: T): U {
@@ -47,15 +52,16 @@ suspend fun <T, U> MutableStateFlow<UiState<T, U>?>.showAndGetResult(input: T): 
     }
 }
 
-fun <T, U : Any> CancellableContinuation<T>.asCallback(flow: MutableStateFlow<U?>): (T) -> Unit = { value: T ->
-    flow.value = null
-    resume(value) { cause, resumedValue, coroutineContext ->
-        coroutineContext[Logger]?.log(
-            "cannot resume with $resumedValue, because continuation is cancelled",
-            cause
-        )
+fun <T, U : Any> CancellableContinuation<T>.asCallback(flow: MutableStateFlow<U?>): (T) -> Unit =
+    { value: T ->
+        flow.value = null
+        resume(value) { cause, resumedValue, coroutineContext ->
+            coroutineContext[Logger]?.log(
+                "cannot resume with $resumedValue, because continuation is cancelled",
+                cause
+            )
+        }
     }
-}
 
 // todo move it to it's own module
 interface Logger : CoroutineContext.Element {

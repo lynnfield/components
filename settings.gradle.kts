@@ -17,6 +17,8 @@ dependencyResolutionManagement {
 }
 
 include(
+    ":action",
+    ":combine",
     ":one-of",
     ":parallel",
     ":uistate",
