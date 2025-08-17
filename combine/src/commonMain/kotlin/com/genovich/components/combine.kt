@@ -3,46 +3,79 @@
 package com.genovich.components
 
 import kotlinx.coroutines.ExperimentalForInheritanceCoroutinesApi
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import kotlin.collections.map
+import kotlinx.coroutines.flow.combine as kotlinCombine
+import kotlinx.coroutines.flow.distinctUntilChangedBy as kotlinDistinctUntilChangedBy
+import kotlinx.coroutines.flow.filterNotNull as kotlinFilterNotNull
+import kotlinx.coroutines.flow.map as kotlinMap
+import kotlinx.coroutines.flow.onEach as kotlinOnEach
+
+fun <T> StateFlow<T>.onEach(action: (T) -> Unit): StateFlow<T> =
+    object : StateFlow<T> {
+        override val value: T
+            get() = this@onEach.value
+        override val replayCache: List<T>
+            get() = this@onEach.replayCache
+
+        override suspend fun collect(collector: FlowCollector<T>): Nothing {
+            this@onEach
+                .kotlinOnEach(action)
+                .collect(collector)
+            error("Should not be reached")
+        }
+    }
 
 fun <T, R> StateFlow<T>.map(transform: (value: T) -> R): StateFlow<R> =
-    object : StateFlow<R> by MutableStateFlow(transform(value)) {
+    object : StateFlow<R> {
+        override val value: R
+            get() = transform(this@map.value)
+
+        override val replayCache: List<R>
+            get() = this@map.replayCache.map(transform)
+
         override suspend fun collect(collector: FlowCollector<R>): Nothing {
-            this@map.collect { collector.emit(transform(it)) }
+            this@map
+                .kotlinMap(transform)
+                .collect(collector)
+            error("Should not be reached")
         }
     }
 
 fun <T, K> StateFlow<T>.distinctUntilChangedBy(keySelector: (T) -> K): StateFlow<T> =
-    object : StateFlow<T> by MutableStateFlow(value) {
-
-        private val nullValue = Any()
+    object : StateFlow<T> {
+        override val value: T
+            get() = this@distinctUntilChangedBy.value
+        override val replayCache: List<T>
+            get() = this@distinctUntilChangedBy.replayCache.distinctBy(keySelector)
 
         override suspend fun collect(collector: FlowCollector<T>): Nothing {
-            var previousKey: Any? = nullValue
-            this@distinctUntilChangedBy.collect {
-                val newKey = keySelector(it)
-                @Suppress("SuspiciousEqualsCombination") if (previousKey === nullValue || previousKey != newKey) {
-                    previousKey = newKey
-                    collector.emit(it)
-                }
-            }
+            this@distinctUntilChangedBy
+                .kotlinDistinctUntilChangedBy(keySelector)
+                .collect(collector)
+            error("Should not be reached")
         }
     }
 
 fun <T : Any> StateFlow<T?>.filterNotNull(initial: T): StateFlow<T> =
-    object : StateFlow<T> by MutableStateFlow(initial) {
+    object : StateFlow<T> {
+        override val value: T
+            get() = this@filterNotNull.value ?: initial
+        override val replayCache: List<T>
+            get() = this@filterNotNull.replayCache.filterNotNull().takeIf { it.isNotEmpty() }
+                ?: listOf(initial)
+
         override suspend fun collect(collector: FlowCollector<T>): Nothing {
-            this@filterNotNull.collect { if (it != null) collector.emit(it) }
+            this@filterNotNull
+                .kotlinFilterNotNull()
+                .collect(collector)
+            error("Should not be reached")
         }
     }
 
 fun <T : Any> StateFlow<T?>.emitSelfWhenHaveValue(): StateFlow<StateFlow<T>?> =
-    this.distinctUntilChangedBy { it?.let { } }.map { it?.let { this.filterNotNull(it) } }
+    this.distinctUntilChangedBy { value -> value?.let { } }
+        .map { it?.let { this.filterNotNull(it) } }
 
 @Suppress("UNCHECKED_CAST")
 fun <T1, T2, R> combine(
@@ -100,26 +133,18 @@ private inline fun <reified T, U> combineInternal(
     flows: Array<StateFlow<T>>,
     crossinline transform: (Array<T>) -> U,
 ): StateFlow<U> {
-    val nullValue = Any()
-    return object : StateFlow<U> by MutableStateFlow(
-        transform(flows.map { it.value }.toTypedArray())
-    ) {
-        override suspend fun collect(collector: FlowCollector<U>): Nothing {
-            coroutineScope {
-                val flowValues = Array<Any?>(flows.size) { nullValue }
+    return object : StateFlow<U> {
+        override val value: U
+            get() = transform(flows.map { it.value }.toTypedArray())
 
-                flows.forEachIndexed { index, flow ->
-                    launch {
-                        flow.collect {
-                            flowValues[index] = it
-                            if (flowValues.all { it !== nullValue }) {
-                                collector.emit(transform(flowValues.map { it as T }
-                                    .toTypedArray<T>()))
-                            }
-                        }
-                    }
-                }
+        override val replayCache: List<U>
+            get() = List(flows.first().replayCache.size) { index ->
+                transform(flows.map { it.replayCache[index] }.toTypedArray())
             }
+
+        override suspend fun collect(collector: FlowCollector<U>): Nothing {
+            kotlinCombine(flows.asList(), transform)
+                .collect(collector)
             error("Should not be reached")
         }
     }

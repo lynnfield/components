@@ -1,6 +1,9 @@
 package com.genovich.components
 
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.ExperimentalForInheritanceCoroutinesApi
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -40,8 +43,26 @@ typealias UiStateFlow<Input, Output> = StateFlow<UiState<Input, Output>?>
 
 typealias UiStateBinding<Input, Output> = Pair<Action<Input, Output>, UiStateFlow<Input, Output>>
 
+@OptIn(ExperimentalForInheritanceCoroutinesApi::class)
 fun <Input, Output> Show(): UiStateBinding<Input, Output> {
-    val mutableStateFlow = MutableStateFlow<UiState<Input, Output>?>(null)
+    val mutableStateFlow = object : MutableStateFlow<UiState<Input, Output>?>, MutableSharedFlow<UiState<Input, Output>?> by MutableSharedFlow(replay = 1, extraBufferCapacity = 4, onBufferOverflow = BufferOverflow.DROP_OLDEST) {
+
+        init {
+            value = null
+        }
+
+        override var value: UiState<Input, Output>? = null
+            set(value) { tryEmit(value) }
+
+        override fun compareAndSet(
+            expect: UiState<Input, Output>?,
+            update: UiState<Input, Output>?
+        ): Boolean {
+            if (expect != value) return false
+            value = update
+            return true
+        }
+    }
     return Show(mutableStateFlow) to mutableStateFlow
 }
 
