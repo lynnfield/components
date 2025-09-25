@@ -21,6 +21,7 @@ include(
     ":combine",
     ":one-of",
     ":parallel",
+    ":try",
     ":uistate",
     ":update-loop",
     ":while-active",

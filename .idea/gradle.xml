@@ -26,6 +26,7 @@
             <option value="$PROJECT_DIR$/combine" />
             <option value="$PROJECT_DIR$/one-of" />
             <option value="$PROJECT_DIR$/parallel" />
+            <option value="$PROJECT_DIR$/try" />
             <option value="$PROJECT_DIR$/uistate" />
             <option value="$PROJECT_DIR$/update-loop" />
             <option value="$PROJECT_DIR$/while-active" />

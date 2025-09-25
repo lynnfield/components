@@ -1,0 +1,18 @@
+plugins {
+    `component-plugin`
+}
+
+version = "1.0.0"
+
+kotlin {
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(libs.kotlin.coroutines.core)
+                implementation(projects.action)
+                implementation(projects.parallel)
+                implementation(projects.oneOf)
+            }
+        }
+    }
+}
