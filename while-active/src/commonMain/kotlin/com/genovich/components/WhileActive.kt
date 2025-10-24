@@ -1,8 +1,8 @@
 package com.genovich.components
 
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
-import kotlin.coroutines.coroutineContext
 
 
 /**
@@ -10,7 +10,7 @@ import kotlin.coroutines.coroutineContext
  * Never returns normally.
  * */
 suspend inline fun whileActive(block: () -> Unit): Nothing {
-    while (coroutineContext.isActive) {
+    while (currentCoroutineContext().isActive) {
         block()
     }
     awaitCancellation()

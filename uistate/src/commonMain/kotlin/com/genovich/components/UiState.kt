@@ -6,6 +6,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.CoroutineContext
 
@@ -45,9 +46,12 @@ typealias UiStateBinding<Input, Output> = Pair<Action<Input, Output>, UiStateFlo
 fun <Input, Output> Show(): UiStateBinding<Input, Output> {
     val mutableStateFlow = object : MutableStateFlow<UiState<Input, Output>?>, MutableSharedFlow<UiState<Input, Output>?> by MutableSharedFlow(replay = 1, extraBufferCapacity = 4, onBufferOverflow = BufferOverflow.DROP_OLDEST) {
 
+        init { tryEmit(null) }
+
         override var value: UiState<Input, Output>? = null
             set(value) { tryEmit(value) }
 
+        // the problem with original implementation is that it is emitting only distinct values
         override fun compareAndSet(
             expect: UiState<Input, Output>?,
             update: UiState<Input, Output>?
@@ -62,14 +66,14 @@ fun <Input, Output> Show(): UiStateBinding<Input, Output> {
 
 suspend fun <T, U> MutableStateFlow<UiState<T, U>?>.showAndGetResult(input: T): U {
     return suspendCancellableCoroutine { continuation ->
-        continuation.invokeOnCancellation { value = null }
-        value = UiState(input, continuation.asCallback(this))
+        continuation.invokeOnCancellation { update { null } }
+        update { UiState(input, continuation.asCallback(this)) }
     }
 }
 
 fun <T, U : Any> CancellableContinuation<T>.asCallback(flow: MutableStateFlow<U?>): (T) -> Unit =
     { value: T ->
-        flow.value = null
+        flow.update { null }
         resume(value) { cause, resumedValue, coroutineContext ->
             coroutineContext[Logger]?.log(
                 "cannot resume with $resumedValue, because continuation is cancelled",
