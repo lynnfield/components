@@ -14,5 +14,5 @@ dependencies {
     //noinspection AndroidGradlePluginVersion
     implementation("com.android.tools.build:gradle:8.12.0")
 
-    implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.34.0")
+    implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.35.0")
 }
