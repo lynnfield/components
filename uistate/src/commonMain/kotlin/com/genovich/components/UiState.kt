@@ -30,10 +30,15 @@ class UiState<Input, Output>(val value: Pair<Input, (Output) -> Unit>) {
 }
 
 data class Show<Input, Output>(
-    val mutableStateFlow: MutableStateFlow<UiState<Input, Output>?>
+    val update: (UiState<Input, Output>?) -> Unit
 ) : Action<Input, Output>() {
+
+    constructor(
+        mutableStateFlow: MutableStateFlow<UiState<Input, Output>?>
+    ) : this({ value -> mutableStateFlow.update { value } })
+
     override suspend fun invoke(input: Input): Output {
-        return mutableStateFlow.showAndGetResult(input)
+        return update.showAndGetResult(input)
     }
 }
 
@@ -64,16 +69,16 @@ fun <Input, Output> Show(): UiStateBinding<Input, Output> {
     return Show(mutableStateFlow) to mutableStateFlow
 }
 
-suspend fun <T, U> MutableStateFlow<UiState<T, U>?>.showAndGetResult(input: T): U {
+suspend fun <Input, Output> ((UiState<Input, Output>?) -> Unit).showAndGetResult(input: Input): Output {
     return suspendCancellableCoroutine { continuation ->
-        continuation.invokeOnCancellation { update { null } }
-        update { UiState(input, continuation.asCallback(this)) }
+        continuation.invokeOnCancellation { this@showAndGetResult(null) }
+        this@showAndGetResult(UiState(input, continuation.asCallback(this@showAndGetResult)))
     }
 }
 
-fun <T, U : Any> CancellableContinuation<T>.asCallback(flow: MutableStateFlow<U?>): (T) -> Unit =
-    { value: T ->
-        flow.update { null }
+fun <Input, Output> CancellableContinuation<Output>.asCallback(update: (UiState<Input, Output>?) -> Unit): (Output) -> Unit =
+    { value: Output ->
+        update(null)
         resume(value) { cause, resumedValue, coroutineContext ->
             coroutineContext[Logger]?.log(
                 "cannot resume with $resumedValue, because continuation is cancelled",
