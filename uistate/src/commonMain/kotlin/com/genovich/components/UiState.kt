@@ -48,6 +48,7 @@ typealias UiStateFlow<Input, Output> = StateFlow<UiState<Input, Output>?>
 typealias UiStateBinding<Input, Output> = Pair<Action<Input, Output>, UiStateFlow<Input, Output>>
 
 @OptIn(ExperimentalForInheritanceCoroutinesApi::class)
+@Deprecated("Use Show with parameters instead")
 fun <Input, Output> Show(): UiStateBinding<Input, Output> {
     val mutableStateFlow = object : MutableStateFlow<UiState<Input, Output>?>, MutableSharedFlow<UiState<Input, Output>?> by MutableSharedFlow(replay = 1, extraBufferCapacity = 4, onBufferOverflow = BufferOverflow.DROP_OLDEST) {
 
