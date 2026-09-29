@@ -2,27 +2,33 @@
 
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     kotlin("multiplatform")
-    id("com.android.library")
-    id("maven-publish")
     id("com.vanniktech.maven.publish")
 }
 
-group = "com.genovich.components"
-
 kotlin {
+    // Consumers on an older Kotlin compiler must be able to read our metadata,
+    // and must not be forced onto a newer kotlin-stdlib.
+    coreLibrariesVersion = "2.1.0"
+    compilerOptions {
+        languageVersion = KotlinVersion.KOTLIN_2_1
+        apiVersion = KotlinVersion.KOTLIN_2_1
+    }
+
     js(IR) {
         browser()
     }
     wasmJs {
         browser()
     }
-    androidTarget {
-        publishLibraryVariants("release", "debug")
 
-        @Suppress("OPT_IN_USAGE") compilerOptions {
+    // Android apps consume the jvm variant, like kotlinx-coroutines-core does,
+    // so there is no minSdk and no AGP in this build.
+    jvm {
+        compilerOptions {
             jvmTarget = JvmTarget.JVM_11
         }
     }
@@ -30,20 +36,6 @@ kotlin {
     iosX64()
     iosArm64()
     iosSimulatorArm64()
-
-    jvm()
-}
-
-android {
-    namespace = "com.genovich.arch"
-    compileSdk = 36
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    defaultConfig {
-        minSdk = 23
-    }
 }
 
 mavenPublishing {
@@ -52,7 +44,7 @@ mavenPublishing {
 
     pom {
         name.set(project.name)
-        description.set("A description of what my library does.")
+        description.set("Suspend-function building blocks (Action, OneOf, Try, parallel, UiState) for composing app logic.")
         inceptionYear.set("2020")
         url.set("https://github.com/lynnfield/components/")
         licenses {

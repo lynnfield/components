@@ -77,6 +77,26 @@ fun <T : Any> StateFlow<T?>.emitSelfWhenHaveValue(): StateFlow<StateFlow<T>?> =
     this.distinctUntilChangedBy { value -> value?.let { } }
         .map { it?.let { this.filterNotNull(it) } }
 
+/**
+ * [emitSelfWhenHaveValue] followed by [wrap], in the shape generated assemblies use:
+ * `null` while [flow] has no value, otherwise [wrap] applied to the non-null view of [flow].
+ * */
+fun <T : Any, R> emitSelfWhenHaveValue(flow: StateFlow<T?>, wrap: (StateFlow<T>) -> R): StateFlow<R?> =
+    flow.emitSelfWhenHaveValue().map { it?.let(wrap) }
+
+/**
+ * Combines any number of [flows], passing their current values to [transform] in order.
+ * */
+@Suppress("UNCHECKED_CAST")
+fun <T, R> combine(
+    vararg flows: StateFlow<T>,
+    transform: (List<T>) -> R,
+): StateFlow<R> {
+    return combineInternal(flows as Array<StateFlow<Any?>>) { results ->
+        transform(results.asList() as List<T>)
+    }
+}
+
 @Suppress("UNCHECKED_CAST")
 fun <T1, T2, R> combine(
     flow: StateFlow<T1>,
