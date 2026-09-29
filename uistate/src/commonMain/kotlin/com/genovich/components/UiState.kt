@@ -1,6 +1,7 @@
 package com.genovich.components
 
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalForInheritanceCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -80,9 +81,9 @@ suspend fun <Input, Output> ((UiState<Input, Output>?) -> Unit).showAndGetResult
 fun <Input, Output> CancellableContinuation<Output>.asCallback(update: (UiState<Input, Output>?) -> Unit): (Output) -> Unit {
     // Only the first answer counts: a stale callback (e.g. a double tap before recomposition)
     // must neither resume twice nor clear the state a newer request has published.
-    val answered = MutableStateFlow(false)
+    val answered = CompletableDeferred<Unit>()
     return { value: Output ->
-        if (answered.compareAndSet(expect = false, update = true)) {
+        if (answered.complete(Unit)) {
             update(null)
             resume(value) { cause, resumedValue, coroutineContext ->
                 coroutineContext[Logger]?.log(
