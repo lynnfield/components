@@ -2,16 +2,20 @@ plugins {
     `component-plugin`
 }
 
-version = "1.0.0-SNAPSHOT"
-
 kotlin {
     sourceSets {
         commonMain {
             dependencies {
                 implementation(libs.kotlin.coroutines.core)
-                implementation(projects.action)
+                api(projects.action)
+                api(projects.oneOf)
                 implementation(projects.parallel)
-                implementation(projects.oneOf)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
             }
         }
     }

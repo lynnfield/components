@@ -77,16 +77,24 @@ suspend fun <Input, Output> ((UiState<Input, Output>?) -> Unit).showAndGetResult
     }
 }
 
-fun <Input, Output> CancellableContinuation<Output>.asCallback(update: (UiState<Input, Output>?) -> Unit): (Output) -> Unit =
-    { value: Output ->
-        update(null)
-        resume(value) { cause, resumedValue, coroutineContext ->
-            coroutineContext[Logger]?.log(
-                "cannot resume with $resumedValue, because continuation is cancelled",
-                cause
-            )
+fun <Input, Output> CancellableContinuation<Output>.asCallback(update: (UiState<Input, Output>?) -> Unit): (Output) -> Unit {
+    // Only the first answer counts: a stale callback (e.g. a double tap before recomposition)
+    // must neither resume twice nor clear the state a newer request has published.
+    val answered = MutableStateFlow(false)
+    return { value: Output ->
+        if (answered.compareAndSet(expect = false, update = true)) {
+            update(null)
+            resume(value) { cause, resumedValue, coroutineContext ->
+                coroutineContext[Logger]?.log(
+                    "cannot resume with $resumedValue, because continuation is cancelled",
+                    cause
+                )
+            }
+        } else {
+            context[Logger]?.log("ignoring $value, because the request is already answered")
         }
     }
+}
 
 // todo move it to it's own module
 interface Logger : CoroutineContext.Element {

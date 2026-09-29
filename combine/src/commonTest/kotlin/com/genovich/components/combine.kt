@@ -66,3 +66,27 @@ class Tests {
         assertEquals(listOf(null, "1", null), actual)
     }
 }
+class GeneratedShapeTests {
+    @Test
+    fun varargCombinePassesValuesInOrder() {
+        val a = kotlinx.coroutines.flow.MutableStateFlow(1)
+        val b = kotlinx.coroutines.flow.MutableStateFlow(2)
+        val c = kotlinx.coroutines.flow.MutableStateFlow(3)
+
+        val combined = combine(a, b, c) { values -> values.joinToString() }
+        assertEquals("1, 2, 3", combined.value)
+
+        b.value = 5
+        assertEquals("1, 5, 3", combined.value)
+    }
+
+    @Test
+    fun emitSelfWhenHaveValueWraps() {
+        val source = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+        val wrapped = emitSelfWhenHaveValue(source) { flow -> "wrapped:" + flow.value }
+
+        assertNull(wrapped.value)
+        source.value = "x"
+        assertEquals("wrapped:x", wrapped.value)
+    }
+}
