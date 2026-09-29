@@ -1,6 +1,7 @@
 name: Release
 
-# Push a tag like v0.1.0 to publish every module with that version to Maven Central.
+# Push a tag like v0.1.0 to upload every module with that version to Maven Central.
+# The deployment then waits in the Central portal (Deployments) until you press Publish there.
 on:
   push:
     tags: ["v*"]
@@ -18,8 +19,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Test
         run: ./gradlew allTests
-      - name: Publish to Maven Central
-        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache -PVERSION_NAME=${GITHUB_REF_NAME#v}
+      - name: Upload to Maven Central
+        run: ./gradlew publishToMavenCentral --no-configuration-cache -PVERSION_NAME=${GITHUB_REF_NAME#v}
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
