@@ -3,6 +3,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
 
 plugins {
     kotlin("multiplatform")
@@ -12,6 +13,7 @@ plugins {
 kotlin {
     // Consumers on an older Kotlin compiler must be able to read our metadata,
     // and must not be forced onto a newer kotlin-stdlib.
+    // This is the stdlib version our published modules declare; only the JVM compiles against it (see below).
     coreLibrariesVersion = "2.1.0"
     compilerOptions {
         languageVersion = KotlinVersion.KOTLIN_2_1
@@ -37,6 +39,24 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
 }
+
+// Klib-based targets (common metadata, JS, Wasm, Native) can only read a stdlib with the
+// compiler's own ABI version, so they compile against the compiler's stdlib instead of
+// coreLibrariesVersion. Their consumers need this compiler version anyway to read our klibs.
+val kotlinCompilerVersion = getKotlinPluginVersion()
+configurations
+    .matching { !it.name.startsWith("jvm") }
+    .configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin" &&
+                (requested.name.startsWith("kotlin-stdlib") ||
+                    requested.name.startsWith("kotlin-test") ||
+                    requested.name == "kotlin-dom-api-compat")
+            ) {
+                useVersion(kotlinCompilerVersion)
+            }
+        }
+    }
 
 mavenPublishing {
     publishToMavenCentral()
