@@ -15,4 +15,6 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew jvmTest
+      # Same test set as the release (iOS simulator tests only run on macOS), so klib and
+      # browser test failures show up on the PR instead of at release time.
+      - run: ./gradlew allTests
