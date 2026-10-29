@@ -17,6 +17,7 @@ dependencyResolutionManagement {
 include(
     ":action",
     ":combine",
+    ":on-demand-feature",
     ":one-of",
     ":parallel",
     ":show-progress",
