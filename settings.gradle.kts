@@ -21,6 +21,7 @@ include(
     ":parallel",
     ":show-progress",
     ":try",
+    ":try-again",
     ":uistate",
     ":update-loop",
     ":while-active",
