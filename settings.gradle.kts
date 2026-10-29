@@ -19,6 +19,7 @@ include(
     ":combine",
     ":one-of",
     ":parallel",
+    ":show-progress",
     ":try",
     ":uistate",
     ":update-loop",
