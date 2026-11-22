@@ -10,6 +10,11 @@ plugins {
     id("com.vanniktech.maven.publish")
 }
 
+// Set group and version eagerly, not only through the publishing plugin's properties:
+// includeBuild dependency substitution (e.g. joyfulsqueals) matches on group:name when the build is configured.
+group = providers.gradleProperty("GROUP").get()
+version = providers.gradleProperty("VERSION_NAME").get()
+
 kotlin {
     // Consumers on an older Kotlin compiler must be able to read our metadata,
     // and must not be forced onto a newer kotlin-stdlib.
